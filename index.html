@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Strike: launch kit in one second</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#E9ECF5;--surface:#F7F8FC;--ink:#14173A;--mute:#5B6085;--line:#C9CEE3;--blue:#3B3FF0;--sun:#FFD23F;--ok:#1E9E6A;
+--display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;--body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1128;--surface:#171A3B;--ink:#EEF0FF;--mute:#9AA0CC;--line:#2B3066;--blue:#7C80FF;--sun:#FFD23F;--ok:#4FD39B}}
+:root[data-theme="dark"]{--bg:#0F1128;--surface:#171A3B;--ink:#EEF0FF;--mute:#9AA0CC;--line:#2B3066;--blue:#7C80FF;--sun:#FFD23F;--ok:#4FD39B}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--body)}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 20px 64px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;font:800 26px/1 var(--display);letter-spacing:-.02em}
+.logo{width:38px;height:38px}
+.logo .bolt{stroke:var(--blue);stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:140;stroke-dashoffset:140;animation:draw .9s .15s cubic-bezier(.6,0,.2,1) forwards}
+.logo .tip{fill:var(--sun);transform-origin:30px 8px;transform:scale(0);animation:pop .45s 1s cubic-bezier(.3,1.8,.5,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}@keyframes pop{to{transform:scale(1)}}
+.tps{display:flex;align-items:baseline;gap:6px;padding:8px 14px;border:1.5px solid var(--ink);border-radius:999px;background:var(--surface);font-variant-numeric:tabular-nums}
+.tps b{font:800 22px/1 var(--display);min-width:3.4ch;text-align:right}.tps span{font-size:13px;color:var(--mute)}
+.tps.live{background:var(--sun);color:#14173A;border-color:#14173A}.tps.live span{color:#14173A}
+h1{font:800 clamp(38px,8vw,76px)/.96 var(--display);letter-spacing:-.035em;margin:44px 0 14px;max-width:14ch}
+.sub{color:var(--mute);max-width:46ch;margin:0 0 28px;font-size:18px}
+.compose{background:var(--surface);border:1.5px solid var(--ink);border-radius:18px;padding:14px;box-shadow:6px 6px 0 var(--ink)}
+.compose textarea{width:100%;min-height:76px;resize:vertical;border:0;background:transparent;color:var(--ink);font:500 20px/1.4 var(--body);outline:none}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:999px;padding:6px 12px;font:500 13px var(--body);cursor:pointer}
+.chip:hover{border-color:var(--blue);color:var(--ink)}
+.go{background:var(--blue);color:#fff;border:0;border-radius:12px;padding:13px 22px;font:700 16px var(--body);cursor:pointer;transition:transform .12s}
+:root[data-theme="dark"] .go{color:#0F1128}@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .go{color:#0F1128}}
+.go:active{transform:translateY(2px)}.go:disabled{opacity:.6;cursor:progress}
+button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.mode{display:flex;gap:8px;align-items:center;margin:16px 0 0;flex-wrap:wrap;font-size:14px;color:var(--mute)}
+.mode select,.mode input{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:14px var(--body)}
+.mode input{width:230px;max-width:100%}
+.err{color:#D0342C;margin:12px 0 0;font-size:14px;min-height:1em}
+.grid{display:grid;gap:16px;margin-top:36px;grid-template-columns:1fr 1fr}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;min-height:200px}
+.card.wide{grid-column:1/-1}
+.card h2{font:800 18px/1 var(--display);margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}
+.card h2 button{font:600 12px var(--body);background:none;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:4px 9px;cursor:pointer}
+.out{white-space:pre-wrap;font-size:15px;line-height:1.6;max-height:420px;overflow:auto}
+.out.empty{color:var(--mute)}
+.caret::after{content:"";display:inline-block;width:7px;height:1em;background:var(--blue);margin-left:2px;vertical-align:-2px;animation:blink .7s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+iframe{width:100%;height:440px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.wl{margin-top:36px;background:var(--ink);color:var(--bg);border-radius:18px;padding:22px}.wl h2{font:800 24px/1.1 var(--display);margin:0 0 6px}.wl p{margin:0 0 14px;opacity:.8}.wl .r{display:flex;gap:8px;flex-wrap:wrap}.wl input{flex:1;min-width:200px;border:0;border-radius:10px;padding:12px;font:16px var(--body);background:var(--bg);color:var(--ink)}.wl button{border:0;border-radius:10px;padding:12px 18px;font:700 15px var(--body);background:var(--sun);color:#14173A;cursor:pointer}.wl .x{background:transparent;color:var(--bg);border:1px solid currentColor;font-weight:500}.wl small{display:block;margin-top:10px;opacity:.8}#hist{margin-top:10px}
+footer{margin-top:40px;color:var(--mute);font-size:13px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.compose{box-shadow:4px 4px 0 var(--ink)}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-delay:0s!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><path class="bolt" d="M24 4 L9 22 H19 L15 36 L31 16 H21 Z"/><circle class="tip" cx="30" cy="8" r="3.4"/></svg>
+    Strike
+  </div>
+  <div class="tps" id="tps" aria-live="off"><b id="tpsv">0</b><span>tok/s</span></div>
+</header>
+
+<h1>One idea. A full launch kit.</h1>
+<p class="sub">Type what you are launching. Strike writes the thread, the replies, and the landing page before you look away.</p>
+
+<div class="compose">
+  <textarea id="idea" aria-label="What are you launching?" placeholder="I'm launching a beginner coding course for designers"></textarea>
+  <div class="row">
+    <div class="chips" id="chips"></div>
+    <button class="go" id="go">Generate kit</button>
+  </div>
+</div>
+
+<div class="mode">
+  <label for="mode">Mode</label>
+  <select id="mode"><option value="demo">Demo (simulated)</option><option value="live">Live (Cerebras)</option></select>
+  <input id="key" type="password" placeholder="API key (optional on the hosted site)" autocomplete="off" hidden aria-label="Cerebras API key">
+  <input id="model" value="moonshotai-kimi-k3.1-pro-trial" hidden aria-label="Model">
+  <label for="tone">Tone</label>
+  <select id="tone"><option>Confident</option><option>Friendly</option><option>Playful</option><option>Professional</option></select>
+</div>
+<p class="err" id="err" role="alert"></p>
+<div class="chips" id="hist" aria-label="Recent kits"></div>
+
+<section class="grid">
+  <article class="card"><h2>X thread <button data-copy="thread">Copy</button></h2><div class="out empty" id="thread">Your thread appears here.</div></article>
+  <article class="card"><h2>Reply hooks <button data-copy="replies">Copy</button></h2><div class="out empty" id="replies">Ten hooks appear here.</div></article>
+  <article class="card wide"><h2>Landing page <span><button id="cp">Copy HTML</button> <button id="dl">Download</button></span></h2><iframe id="page" title="Generated landing page" sandbox="" srcdoc=""></iframe></article>
+</section>
+<section class="wl"><h2>Join the Strike waitlist</h2><p>Get early access when launch kits go public.</p><div class="r"><input id="wle" type="email" placeholder="you@email.com" aria-label="Email address"><button id="wlb">Join waitlist</button><button class="x" id="wlx">Copy all emails</button></div><small id="wlm"></small><small id="wlc"></small></section>
+<footer>Built with Kimi on Cerebras. API key stays in this tab and is never saved.</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const IDEAS=["A coding course for designers","My newsletter about indie hardware","A fitness app for busy parents"];
+IDEAS.forEach(t=>{const b=document.createElement("button");b.className="chip";b.textContent=t;b.onclick=()=>{$("idea").value=t};$("chips").appendChild(b)});
+$("mode").onchange=()=>{const l=$("mode").value==="live";$("key").hidden=!l;$("model").hidden=!l};
+document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText($(b.dataset.copy).textContent);b.textContent="Copied";setTimeout(()=>b.textContent="Copy",1200)}catch(e){b.textContent="Select and copy"}});
+
+const SYS=`You write launch kits. Reply in exactly three sections, each starting with its marker on its own line:
+===THREAD===
+An X thread of 6 short posts, numbered 1/ to 6/.
+===REPLIES===
+10 one-line reply hooks in different tones.
+===PAGE===
+One complete self-contained HTML landing page (inline CSS, no external assets, distinctive design, no markdown fences).`;
+
+function demoText(idea){
+const t=idea||"my launch";
+return `===THREAD===
+1/ I'm launching: ${t}. Here is why it exists and why now.
+2/ The problem: most people want this and quit before the first win.
+3/ So we cut the setup. You get a result in the first ten minutes.
+4/ No fluff, no 40-hour backlog. Just the next small step, every day.
+5/ Early members shape what we build next. That is the whole deal.
+6/ Reply "in" and I'll send you the link when doors open.
+===REPLIES===
+1. Quiet confidence: "Built this because I needed it first."
+2. Curious: "What would make you try this tomorrow?"
+3. Bold: "Most advice here is wrong. Ask me why."
+4. Friendly: "Tell me your biggest blocker, I'll reply to every one."
+5. Direct: "Doors open Friday. Reply 'in'."
+6. Playful: "Yes, I'm shipping this on a weekend."
+7. Proof: "First ten testers finished in one sitting."
+8. Contrarian: "Skip the course. Start with this."
+9. Story: "Three months ago I almost gave up on this."
+10. Closer: "If you read this far, you're the person it's for."
+===PAGE===
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;font-family:Georgia,serif;background:#14173A;color:#F3F1FF;display:grid;place-items:center;min-height:100vh;text-align:center;padding:24px}main{max-width:560px}h1{font-size:44px;line-height:1.05;margin:0 0 16px}p{opacity:.8;font-size:18px}a{display:inline-block;margin-top:20px;background:#FFD23F;color:#14173A;padding:14px 26px;border-radius:12px;font-family:system-ui;font-weight:700;text-decoration:none}</style></head><body><main><h1>${t.replace(/[<>&]/g,"")}</h1><p>A calm, focused way to get your first win in ten minutes. Join the first group.</p><a href="#">Join the waitlist</a></main></body></html>`;
+}
+
+let busy=false;
+function render(buf,done){
+const m=buf.split(/===(THREAD|REPLIES|PAGE)===\n?/);const s={THREAD:"",REPLIES:"",PAGE:""};
+for(let i=1;i<m.length;i+=2)s[m[i]]=m[i+1]||"";
+const set=(id,txt,last)=>{const e=$(id);e.classList.toggle("empty",!txt);e.textContent=txt||e.textContent;e.classList.toggle("caret",!!last&&!done)};
+if(s.THREAD)set("thread",s.THREAD.trim(),!s.REPLIES);
+if(s.REPLIES)set("replies",s.REPLIES.trim(),!s.PAGE);
+if(s.PAGE&&(done||s.PAGE.length%5===0))$("page").srcdoc=s.PAGE.replace(/^```html\n?|```$/g,"");
+}
+async function run(){
+if(busy)return;busy=true;$("go").disabled=true;$("err").textContent="";
+["thread","replies"].forEach(i=>{$(i).textContent="";$(i).classList.remove("empty")});$("page").srcdoc="";
+const idea=$("idea").value.trim()||IDEAS[0];$("idea").value=idea;
+const t0=performance.now();let buf="";const tick=()=>{const s=(performance.now()-t0)/1000;$("tpsv").textContent=Math.round(buf.length/4/Math.max(s,.05))};
+$("tps").classList.add("live");
+try{
+ if($("mode").value==="demo"){
+  const full=demoText(idea);
+  for(let i=0;i<full.length;i+=90){buf=full.slice(0,i+90);render(buf,false);tick();await new Promise(r=>setTimeout(r,16))}
+ }else{
+  const key=$("key").value.trim();
+  const res=await fetch(key?"https://api.cerebras.ai/v1/chat/completions":"/api/generate",{method:"POST",headers:key?{"Content-Type":"application/json","Authorization":"Bearer "+key}:{"Content-Type":"application/json"},
+   body:JSON.stringify({model:$("model").value.trim(),stream:true,messages:[{role:"system",content:SYS},{role:"user",content:idea+"\nTone: "+$("tone").value+"."}]})});
+  if(!res.ok)throw new Error("Cerebras returned "+res.status+". Check the key and model name.");
+  const rd=res.body.getReader(),dec=new TextDecoder();let carry="";
+  for(;;){const{done,value}=await rd.read();if(done)break;carry+=dec.decode(value,{stream:true});const lines=carry.split("\n");carry=lines.pop();
+   for(const l of lines){if(!l.startsWith("data:")||l.includes("[DONE]"))continue;try{const d=JSON.parse(l.slice(5));buf+=d.choices?.[0]?.delta?.content||""}catch(e){}}
+   render(buf,false);tick()}
+ }
+ render(buf,true);tick();saveHist(idea,buf);
+}catch(e){$("err").textContent=e.message.includes("Failed to fetch")?"Request blocked. Run this file from your PC (open it locally) to use Live mode.":e.message}
+busy=false;$("go").disabled=false;
+}
+const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function saveHist(idea,buf){const h=store.get("strike:h",[]).filter(x=>x.idea!==idea);h.unshift({idea,buf});store.set("strike:h",h.slice(0,5));drawHist()}
+function drawHist(){const el=$("hist");el.innerHTML="";store.get("strike:h",[]).forEach(x=>{const b=document.createElement("button");b.className="chip";b.textContent="Recent: "+x.idea.slice(0,26);b.onclick=()=>{$("idea").value=x.idea;render(x.buf,true)};el.appendChild(b)})}
+$("dl").onclick=()=>{const h=$("page").srcdoc;if(!h)return;const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([h],{type:"text/html"}));a.download="landing.html";a.click()};
+$("cp").onclick=async()=>{try{await navigator.clipboard.writeText($("page").srcdoc);$("cp").textContent="Copied";setTimeout(()=>$("cp").textContent="Copy HTML",1200)}catch(e){}};
+function drawWl(){const n=store.get("strike:wl",[]).length;$("wlc").textContent=n+(n===1?" person":" people")+" on this device's list"}
+$("wlb").onclick=()=>{const v=$("wle").value.trim();if(!/^\S+@\S+\.\S+$/.test(v)){$("wlm").textContent="Enter a valid email address.";return}const l=store.get("strike:wl",[]);if(!l.includes(v)){l.push(v);store.set("strike:wl",l)}$("wle").value="";$("wlm").textContent="You are on the list.";drawWl()};
+$("wlx").onclick=async()=>{try{await navigator.clipboard.writeText(store.get("strike:wl",[]).join("\n"));$("wlm").textContent="Emails copied."}catch(e){$("wlm").textContent="Could not copy."}};
+drawHist();drawWl();
+$("go").onclick=run;
+$("idea").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))run()});
+</script>
+</body>
+</html>
