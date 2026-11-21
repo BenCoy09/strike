@@ -50,6 +50,8 @@ The API key lives in a Vercel environment variable, so it never reaches the brow
 1. Push this repo to GitHub and import it in Vercel.
 2. Add the environment variable `CEREBRAS_API_KEY`.
 3. Optional: `CEREBRAS_MODEL` (default `moonshotai-kimi-k3.1-pro-trial`).
+   Also optional: `CEREBRAS_REASONING` (`low`, `high`, `max`; default `low`), `CEREBRAS_FALLBACK_MODEL` (default `gpt-oss-120b`), `KIMI_MAX_WAIT_MS` (default 20000).
+   If Kimi has not started within the wait, visitors get a labeled fallback run. Tick "Kimi only" to wait for Kimi instead.
 4. Deploy, switch to *Live*, and leave the key field empty.
 
 ## Features
