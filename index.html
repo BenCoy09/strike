@@ -166,7 +166,7 @@ try{
   if(!res.ok)throw new Error("Cerebras returned "+res.status+". Check the key and model name.");
   const rd=res.body.getReader(),dec=new TextDecoder();let carry="";
   for(;;){const{done,value}=await rd.read();if(done)break;carry+=dec.decode(value,{stream:true});const lines=carry.split("\n");carry=lines.pop();
-   for(const l of lines){if(!l.startsWith("data:")||l.includes("[DONE]"))continue;try{const d=JSON.parse(l.slice(5));buf+=d.choices?.[0]?.delta?.content||""}catch(e){}}
+   for(const l of lines){if(!l.startsWith("data:")||l.includes("[DONE]"))continue;try{const d=JSON.parse(l.slice(5));if(d.error)$("err").textContent=d.error;buf+=d.choices?.[0]?.delta?.content||""}catch(e){}}
    render(buf,false);tick()}
  }
  render(buf,true);tick();saveHist(idea,buf);finish(t0,buf,tf,l0);
@@ -180,7 +180,7 @@ $("dl").onclick=()=>{const h=$("page").srcdoc;if(!h)return;const a=document.crea
 $("cp").onclick=async()=>{try{await navigator.clipboard.writeText($("page").srcdoc);$("cp").textContent="Copied";setTimeout(()=>$("cp").textContent="Copy HTML",1200)}catch(e){}};
 function finish(t0,buf,tf,l0){const n=performance.now(),s=(n-t0)/1000,q=tf?(tf-t0)/1000:0,tk=Math.round((buf.length-(l0||0))/4/Math.max((n-(tf||t0))/1000,.05));$("tmv").textContent=s.toFixed(1);document.querySelectorAll(".card").forEach(c=>{c.dataset.t=s.toFixed(1);c.classList.add("isdone")});$("e1").textContent=$("mode").value==="demo"?"Demo mode (simulated speed)":"Kimi K3.1 Pro on Cerebras";$("e2").textContent=s.toFixed(1)+" seconds";$("e3").textContent="about "+tk+" tokens per second"+(q>1?" after "+q.toFixed(1)+"s in queue":"");$("endb").hidden=false}
 $("endb").onclick=()=>$("end").classList.add("on");$("end").onclick=()=>$("end").classList.remove("on");
-$("qchk").onclick=async()=>{const r=$("qres");r.textContent="Checking...";try{const x=await(await fetch("/api/ping")).json(),q=x.queue;r.textContent=q==null?"No data":"Queue "+q.toFixed(1)+"s: "+(q<5?"good time to record":"busy, wait and retry")}catch(e){r.textContent="Works on the hosted site only"}};
+$("qchk").onclick=async()=>{const r=$("qres");r.textContent="Checking...";try{const x=await(await fetch("/api/ping")).json(),q=x.queue;r.textContent=x.over?"Queue over "+x.over+"s: busy, wait and retry":q==null?"No data":"Queue "+q.toFixed(1)+"s: "+(q<5?"good time to record":"busy, wait and retry")}catch(e){r.textContent="Check failed: "+(e&&e.message?e.message:"unknown")}};
 drawHist();
 $("go").onclick=run;
 $("idea").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))run()});
