@@ -26,6 +26,7 @@ export default async function handler(req, res) {
       model: process.env.CEREBRAS_MODEL || "moonshotai-kimi-k3.1-pro-trial",
       stream: true,
       max_tokens: 3500,
+      ...(process.env.CEREBRAS_REASONING ? { reasoning_effort: process.env.CEREBRAS_REASONING } : {}),
       messages: [{ role: "system", content: SYS }, { role: "user", content: user }],
     }),
   });

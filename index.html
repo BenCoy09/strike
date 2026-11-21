@@ -86,6 +86,7 @@ footer{margin-top:40px;color:var(--mute);font-size:13px}
   <input id="model" value="moonshotai-kimi-k3.1-pro-trial" hidden aria-label="Model">
   <label for="tone">Tone</label>
   <select id="tone"><option>Confident</option><option>Friendly</option><option>Playful</option><option>Professional</option></select>
+  <button class="chip" id="qchk">Check Kimi queue</button><span id="qres"></span>
 </div>
 <p class="err" id="err" role="alert"></p>
 <div class="chips" id="hist" aria-label="Recent kits"></div>
@@ -96,7 +97,6 @@ footer{margin-top:40px;color:var(--mute);font-size:13px}
   <article class="card"><h2>Reply hooks <button data-copy="replies">Copy</button></h2><div class="out empty" id="replies">Ten hooks appear here.</div></article>
   <article class="card wide"><h2>Landing page <span><button id="cp">Copy HTML</button> <button id="dl">Download</button></span></h2><iframe id="page" title="Generated landing page" sandbox="" srcdoc=""></iframe></article>
 </section>
-<section class="wl"><h2>Join the Strike waitlist</h2><p>Get early access when launch kits go public.</p><div class="r"><input id="wle" type="email" placeholder="you@email.com" aria-label="Email address"><button id="wlb">Join waitlist</button><button class="x" id="wlx">Copy all emails</button></div><small id="wlm"></small><small id="wlc"></small></section>
 <footer>Built with Kimi on Cerebras. API key stays in this tab and is never saved.</footer>
 </div>
 
@@ -153,14 +153,14 @@ async function run(){
 if(busy)return;busy=true;$("go").disabled=true;$("err").textContent="";
 ["thread","replies"].forEach(i=>{$(i).textContent="";$(i).classList.remove("empty")});$("page").srcdoc="";
 const idea=$("idea").value.trim()||IDEAS[0];$("idea").value=idea;
-const t0=performance.now();let buf="";const tick=()=>{const s=(performance.now()-t0)/1000;$("tmv").textContent=s.toFixed(1);$("tpsv").textContent=Math.round(buf.length/4/Math.max(s,.05))};
+const t0=performance.now();let buf="";let tf=0,l0=0;const tick=()=>{const n=performance.now(),s=(n-t0)/1000;if(!tf&&buf.length){tf=n;l0=buf.length;$("err").textContent=""}$("tmv").textContent=s.toFixed(1);$("tpsv").textContent=tf?Math.round((buf.length-l0)/4/Math.max((n-tf)/1000,.05)):0};
 $("tps").classList.add("live");$("tmr").classList.add("live");document.querySelectorAll(".card").forEach(c=>c.classList.remove("isdone"));
 try{
  if($("mode").value==="demo"){
   const full=demoText(idea);
   for(let i=0;i<full.length;i+=90){buf=full.slice(0,i+90);render(buf,false);tick();await new Promise(r=>setTimeout(r,16))}
  }else{
-  const key=$("key").value.trim();
+  const key=$("key").value.trim();$("err").textContent="Waiting in Kimi's shared queue. This can take a minute when the hackathon is busy.";
   const res=await fetch(key?"https://api.cerebras.ai/v1/chat/completions":"/api/generate",{method:"POST",headers:key?{"Content-Type":"application/json","Authorization":"Bearer "+key}:{"Content-Type":"application/json"},
    body:JSON.stringify({model:$("model").value.trim(),stream:true,messages:[{role:"system",content:SYS},{role:"user",content:idea+"\nTone: "+$("tone").value+"."}]})});
   if(!res.ok)throw new Error("Cerebras returned "+res.status+". Check the key and model name.");
@@ -169,7 +169,7 @@ try{
    for(const l of lines){if(!l.startsWith("data:")||l.includes("[DONE]"))continue;try{const d=JSON.parse(l.slice(5));buf+=d.choices?.[0]?.delta?.content||""}catch(e){}}
    render(buf,false);tick()}
  }
- render(buf,true);tick();saveHist(idea,buf);finish(t0,buf);
+ render(buf,true);tick();saveHist(idea,buf);finish(t0,buf,tf,l0);
 }catch(e){$("err").textContent=e.message.includes("Failed to fetch")?"Request blocked. Run this file from your PC (open it locally) to use Live mode.":e.message}
 busy=false;$("go").disabled=false;
 }
@@ -178,12 +178,10 @@ function saveHist(idea,buf){const h=store.get("strike:h",[]).filter(x=>x.idea!==
 function drawHist(){const el=$("hist");el.innerHTML="";store.get("strike:h",[]).forEach(x=>{const b=document.createElement("button");b.className="chip";b.textContent="Recent: "+x.idea.slice(0,26);b.onclick=()=>{$("idea").value=x.idea;render(x.buf,true)};el.appendChild(b)})}
 $("dl").onclick=()=>{const h=$("page").srcdoc;if(!h)return;const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([h],{type:"text/html"}));a.download="landing.html";a.click()};
 $("cp").onclick=async()=>{try{await navigator.clipboard.writeText($("page").srcdoc);$("cp").textContent="Copied";setTimeout(()=>$("cp").textContent="Copy HTML",1200)}catch(e){}};
-function drawWl(){const n=store.get("strike:wl",[]).length;$("wlc").textContent=n+(n===1?" person":" people")+" on this device's list"}
-$("wlb").onclick=()=>{const v=$("wle").value.trim();if(!/^\S+@\S+\.\S+$/.test(v)){$("wlm").textContent="Enter a valid email address.";return}const l=store.get("strike:wl",[]);if(!l.includes(v)){l.push(v);store.set("strike:wl",l)}$("wle").value="";$("wlm").textContent="You are on the list.";drawWl()};
-$("wlx").onclick=async()=>{try{await navigator.clipboard.writeText(store.get("strike:wl",[]).join("\n"));$("wlm").textContent="Emails copied."}catch(e){$("wlm").textContent="Could not copy."}};
-function finish(t0,buf){const s=(performance.now()-t0)/1000,tk=Math.round(buf.length/4/Math.max(s,.05));$("tmv").textContent=s.toFixed(1);document.querySelectorAll(".card").forEach(c=>{c.dataset.t=s.toFixed(1);c.classList.add("isdone")});$("e1").textContent=$("mode").value==="demo"?"Demo mode (simulated speed)":"Kimi K3.1 Pro on Cerebras";$("e2").textContent=s.toFixed(1)+" seconds";$("e3").textContent="about "+tk+" tokens per second";$("endb").hidden=false}
+function finish(t0,buf,tf,l0){const n=performance.now(),s=(n-t0)/1000,q=tf?(tf-t0)/1000:0,tk=Math.round((buf.length-(l0||0))/4/Math.max((n-(tf||t0))/1000,.05));$("tmv").textContent=s.toFixed(1);document.querySelectorAll(".card").forEach(c=>{c.dataset.t=s.toFixed(1);c.classList.add("isdone")});$("e1").textContent=$("mode").value==="demo"?"Demo mode (simulated speed)":"Kimi K3.1 Pro on Cerebras";$("e2").textContent=s.toFixed(1)+" seconds";$("e3").textContent="about "+tk+" tokens per second"+(q>1?" after "+q.toFixed(1)+"s in queue":"");$("endb").hidden=false}
 $("endb").onclick=()=>$("end").classList.add("on");$("end").onclick=()=>$("end").classList.remove("on");
-drawHist();drawWl();
+$("qchk").onclick=async()=>{const r=$("qres");r.textContent="Checking...";try{const x=await(await fetch("/api/ping")).json(),q=x.queue;r.textContent=q==null?"No data":"Queue "+q.toFixed(1)+"s: "+(q<5?"good time to record":"busy, wait and retry")}catch(e){r.textContent="Works on the hosted site only"}};
+drawHist();
 $("go").onclick=run;
 $("idea").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))run()});
 </script>
