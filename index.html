@@ -52,7 +52,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 .caret::after{content:"";display:inline-block;width:7px;height:1em;background:var(--blue);margin-left:2px;vertical-align:-2px;animation:blink .7s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
 iframe{width:100%;height:440px;border:1px solid var(--line);border-radius:12px;background:#fff}
-.wl{margin-top:36px;background:var(--ink);color:var(--bg);border-radius:18px;padding:22px}.wl h2{font:800 24px/1.1 var(--display);margin:0 0 6px}.wl p{margin:0 0 14px;opacity:.8}.wl .r{display:flex;gap:8px;flex-wrap:wrap}.wl input{flex:1;min-width:200px;border:0;border-radius:10px;padding:12px;font:16px var(--body);background:var(--bg);color:var(--ink)}.wl button{border:0;border-radius:10px;padding:12px 18px;font:700 15px var(--body);background:var(--sun);color:#14173A;cursor:pointer}.wl .x{background:transparent;color:var(--bg);border:1px solid currentColor;font-weight:500}.wl small{display:block;margin-top:10px;opacity:.8}#hist{margin-top:10px}
+.card{position:relative}.card.isdone::after{content:"DONE " attr(data-t) "s";position:absolute;top:-11px;left:16px;background:#C8321F;color:#fff;font:700 12px var(--body);letter-spacing:.06em;padding:4px 10px;border-radius:999px}#end{position:fixed;inset:0;z-index:50;background:#0B0C1F;color:#fff;display:none;place-items:center;text-align:center;padding:24px;cursor:pointer}#end.on{display:grid}#end .m{font:800 clamp(52px,14vw,120px)/1 var(--display);color:#FFD23F;margin:14px 0}#end .k{font:500 clamp(16px,4vw,24px) var(--body);opacity:.85}#end .p{margin-top:36px;font:600 14px var(--body);letter-spacing:.14em;text-transform:uppercase;opacity:.7}.wl{margin-top:36px;background:var(--ink);color:var(--bg);border-radius:18px;padding:22px}.wl h2{font:800 24px/1.1 var(--display);margin:0 0 6px}.wl p{margin:0 0 14px;opacity:.8}.wl .r{display:flex;gap:8px;flex-wrap:wrap}.wl input{flex:1;min-width:200px;border:0;border-radius:10px;padding:12px;font:16px var(--body);background:var(--bg);color:var(--ink)}.wl button{border:0;border-radius:10px;padding:12px 18px;font:700 15px var(--body);background:var(--sun);color:#14173A;cursor:pointer}.wl .x{background:transparent;color:var(--bg);border:1px solid currentColor;font-weight:500}.wl small{display:block;margin-top:10px;opacity:.8}#hist{margin-top:10px}
 footer{margin-top:40px;color:var(--mute);font-size:13px}
 @media(max-width:720px){.grid{grid-template-columns:1fr}.compose{box-shadow:4px 4px 0 var(--ink)}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-delay:0s!important}}
@@ -65,7 +65,7 @@ footer{margin-top:40px;color:var(--mute);font-size:13px}
     <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><path class="bolt" d="M24 4 L9 22 H19 L15 36 L31 16 H21 Z"/><circle class="tip" cx="30" cy="8" r="3.4"/></svg>
     Strike
   </div>
-  <div class="tps" id="tps" aria-live="off"><b id="tpsv">0</b><span>tok/s</span></div>
+  <div style="display:flex;gap:8px"><div class="tps" id="tmr"><b id="tmv">0.0</b><span>sec</span></div><div class="tps" id="tps" aria-live="off"><b id="tpsv">0</b><span>tok/s</span></div></div>
 </header>
 
 <h1>One idea. A full launch kit.</h1>
@@ -89,6 +89,7 @@ footer{margin-top:40px;color:var(--mute);font-size:13px}
 </div>
 <p class="err" id="err" role="alert"></p>
 <div class="chips" id="hist" aria-label="Recent kits"></div>
+<button class="chip" id="endb" hidden>Show ending card</button>
 
 <section class="grid">
   <article class="card"><h2>X thread <button data-copy="thread">Copy</button></h2><div class="out empty" id="thread">Your thread appears here.</div></article>
@@ -99,6 +100,7 @@ footer{margin-top:40px;color:var(--mute);font-size:13px}
 <footer>Built with Kimi on Cerebras. API key stays in this tab and is never saved.</footer>
 </div>
 
+<div id="end" role="dialog" aria-label="Ending card"><div><div class="k" id="e1"></div><div class="m" id="e2"></div><div class="k" id="e3"></div><div class="p">powered by Cerebras</div></div></div>
 <script>
 const $=id=>document.getElementById(id);
 const IDEAS=["A coding course for designers","My newsletter about indie hardware","A fitness app for busy parents"];
@@ -151,8 +153,8 @@ async function run(){
 if(busy)return;busy=true;$("go").disabled=true;$("err").textContent="";
 ["thread","replies"].forEach(i=>{$(i).textContent="";$(i).classList.remove("empty")});$("page").srcdoc="";
 const idea=$("idea").value.trim()||IDEAS[0];$("idea").value=idea;
-const t0=performance.now();let buf="";const tick=()=>{const s=(performance.now()-t0)/1000;$("tpsv").textContent=Math.round(buf.length/4/Math.max(s,.05))};
-$("tps").classList.add("live");
+const t0=performance.now();let buf="";const tick=()=>{const s=(performance.now()-t0)/1000;$("tmv").textContent=s.toFixed(1);$("tpsv").textContent=Math.round(buf.length/4/Math.max(s,.05))};
+$("tps").classList.add("live");$("tmr").classList.add("live");document.querySelectorAll(".card").forEach(c=>c.classList.remove("isdone"));
 try{
  if($("mode").value==="demo"){
   const full=demoText(idea);
@@ -167,7 +169,7 @@ try{
    for(const l of lines){if(!l.startsWith("data:")||l.includes("[DONE]"))continue;try{const d=JSON.parse(l.slice(5));buf+=d.choices?.[0]?.delta?.content||""}catch(e){}}
    render(buf,false);tick()}
  }
- render(buf,true);tick();saveHist(idea,buf);
+ render(buf,true);tick();saveHist(idea,buf);finish(t0,buf);
 }catch(e){$("err").textContent=e.message.includes("Failed to fetch")?"Request blocked. Run this file from your PC (open it locally) to use Live mode.":e.message}
 busy=false;$("go").disabled=false;
 }
@@ -179,6 +181,8 @@ $("cp").onclick=async()=>{try{await navigator.clipboard.writeText($("page").srcd
 function drawWl(){const n=store.get("strike:wl",[]).length;$("wlc").textContent=n+(n===1?" person":" people")+" on this device's list"}
 $("wlb").onclick=()=>{const v=$("wle").value.trim();if(!/^\S+@\S+\.\S+$/.test(v)){$("wlm").textContent="Enter a valid email address.";return}const l=store.get("strike:wl",[]);if(!l.includes(v)){l.push(v);store.set("strike:wl",l)}$("wle").value="";$("wlm").textContent="You are on the list.";drawWl()};
 $("wlx").onclick=async()=>{try{await navigator.clipboard.writeText(store.get("strike:wl",[]).join("\n"));$("wlm").textContent="Emails copied."}catch(e){$("wlm").textContent="Could not copy."}};
+function finish(t0,buf){const s=(performance.now()-t0)/1000,tk=Math.round(buf.length/4/Math.max(s,.05));$("tmv").textContent=s.toFixed(1);document.querySelectorAll(".card").forEach(c=>{c.dataset.t=s.toFixed(1);c.classList.add("isdone")});$("e1").textContent=$("mode").value==="demo"?"Demo mode (simulated speed)":"Kimi K3.1 Pro on Cerebras";$("e2").textContent=s.toFixed(1)+" seconds";$("e3").textContent="about "+tk+" tokens per second";$("endb").hidden=false}
+$("endb").onclick=()=>$("end").classList.add("on");$("end").onclick=()=>$("end").classList.remove("on");
 drawHist();drawWl();
 $("go").onclick=run;
 $("idea").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))run()});
