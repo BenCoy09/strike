@@ -1,5 +1,6 @@
 // Vercel serverless function: keeps the Cerebras key on the server.
-// Env vars: CEREBRAS_API_KEY (required), CEREBRAS_MODEL, CEREBRAS_REASONING (optional)
+// Env vars: CEREBRAS_API_KEY (required); optional CEREBRAS_MODEL, CEREBRAS_REASONING (low|high|max, or off to omit),
+// CEREBRAS_FALLBACK_MODEL, KIMI_MAX_WAIT_MS
 const SYS = `You write launch kits. Reply in exactly three sections, each starting with its marker on its own line:
 ===THREAD===
 An X thread of 6 short posts, numbered 1/ to 6/.
@@ -12,37 +13,61 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   if (!process.env.CEREBRAS_API_KEY) return res.status(500).json({ error: "Server key not set" });
 
-  const msgs = (req.body && req.body.messages) || [];
+  const body = req.body || {};
+  const msgs = body.messages || [];
   const user = String((msgs[msgs.length - 1] || {}).content || "").slice(0, 400);
   if (!user.trim()) return res.status(400).json({ error: "Empty idea" });
 
-  // Open the stream right away and send keep-alives so mobile networks do not drop the wait.
+  const strict = !!body.strict; // true = wait for Kimi only, never fall back
+  const KIMI = process.env.CEREBRAS_MODEL || "moonshotai-kimi-k3.1-pro-trial";
+  const FALLBACK = process.env.CEREBRAS_FALLBACK_MODEL || "gpt-oss-120b";
+  const WAIT = strict ? 55000 : Number(process.env.KIMI_MAX_WAIT_MS || 20000);
+
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" });
   res.write(": connected\n\n");
   const ka = setInterval(() => res.write(": waiting\n\n"), 5000);
 
+  // Streams one model to the client. Aborts if no first chunk arrives within `wait` ms.
+  async function run(model, wait) {
+    const ctl = new AbortController();
+    let timer = wait ? setTimeout(() => ctl.abort(), wait) : null;
+    try {
+      const isKimi = model === KIMI;
+      const up = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+        method: "POST",
+        signal: ctl.signal,
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + process.env.CEREBRAS_API_KEY },
+        body: JSON.stringify({
+          model,
+          stream: true,
+          // Reasoning tokens count toward this limit, so leave real headroom.
+          max_tokens: isKimi ? 8000 : 4000,
+          ...(isKimi && process.env.CEREBRAS_REASONING !== "off" ? { reasoning_effort: process.env.CEREBRAS_REASONING || "low" } : {}),
+          messages: [{ role: "system", content: SYS }, { role: "user", content: user }],
+        }),
+      });
+      if (!up.ok) throw new Error("status " + up.status);
+      let first = true;
+      for await (const chunk of up.body) {
+        if (first) { first = false; if (timer) { clearTimeout(timer); timer = null; } }
+        res.write(chunk);
+      }
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   try {
-    const upstream = await fetch("https://api.cerebras.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + process.env.CEREBRAS_API_KEY,
-      },
-      body: JSON.stringify({
-        model: process.env.CEREBRAS_MODEL || "moonshotai-kimi-k3.1-pro-trial",
-        stream: true,
-        max_tokens: 3500,
-        ...(process.env.CEREBRAS_REASONING ? { reasoning_effort: process.env.CEREBRAS_REASONING } : {}),
-        messages: [{ role: "system", content: SYS }, { role: "user", content: user }],
-      }),
-    });
-    if (!upstream.ok) {
-      res.write('data: {"error":"Cerebras returned ' + upstream.status + '"}\n\n');
-    } else {
-      for await (const chunk of upstream.body) res.write(chunk);
+    try {
+      await run(KIMI, WAIT);
+    } catch (e) {
+      if (strict) throw e;
+      res.write('data: {"notice":"Kimi was busy, so this run used ' + FALLBACK + '."}\n\n');
+      await run(FALLBACK, 0);
     }
   } catch (e) {
-    res.write('data: {"error":"Connection to Cerebras failed"}\n\n');
+    const msg = e && e.name === "AbortError" ? "Kimi queue is over 55s. Try again in a few minutes." : "Cerebras request failed";
+    res.write('data: {"error":"' + msg + '"}\n\n');
   } finally {
     clearInterval(ka);
     res.end();
