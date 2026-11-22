@@ -66,7 +66,12 @@ export default async function handler(req, res) {
       await run(FALLBACK, 0);
     }
   } catch (e) {
-    const msg = e && e.name === "AbortError" ? "Kimi is too busy right now. Try again in a few minutes." : "Cerebras request failed";
+    const code = e && /^status (\d+)$/.exec(e.message || "");
+    const msg = e && e.name === "AbortError"
+      ? "Kimi is too busy right now. Try again in a few minutes."
+      : code
+        ? "Cerebras returned " + code[1] + (code[1] === "429" ? " (too many requests, wait a minute)" : code[1] === "401" || code[1] === "403" ? " (key problem)" : "")
+        : "Cerebras request failed";
     res.write('data: {"error":"' + msg + '"}\n\n');
   } finally {
     clearInterval(ka);
