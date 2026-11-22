@@ -52,7 +52,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 .caret::after{content:"";display:inline-block;width:7px;height:1em;background:var(--blue);margin-left:2px;vertical-align:-2px;animation:blink .7s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
 iframe{width:100%;height:440px;border:1px solid var(--line);border-radius:12px;background:#fff}
-.chip input{width:auto;padding:0;margin:0 8px 0 0}label.chip{display:inline-flex;align-items:center;cursor:pointer}.note{color:var(--mute)}.card{position:relative}.card.isdone::after{content:"DONE " attr(data-t);position:absolute;top:-11px;left:16px;background:#C8321F;color:#fff;font:700 12px var(--body);letter-spacing:.06em;padding:4px 10px;border-radius:999px}#end{position:fixed;inset:0;z-index:50;background:#0B0C1F;color:#fff;display:none;place-items:center;text-align:center;padding:24px;cursor:pointer}#end.on{display:grid}#end .m{font:800 clamp(52px,14vw,120px)/1 var(--display);color:#FFD23F;margin:14px 0}#end .k{font:500 clamp(16px,4vw,24px) var(--body);opacity:.85}#end .p{margin-top:36px;font:600 14px var(--body);letter-spacing:.14em;text-transform:uppercase;opacity:.7}.wl{margin-top:36px;background:var(--ink);color:var(--bg);border-radius:18px;padding:22px}.wl h2{font:800 24px/1.1 var(--display);margin:0 0 6px}.wl p{margin:0 0 14px;opacity:.8}.wl .r{display:flex;gap:8px;flex-wrap:wrap}.wl input{flex:1;min-width:200px;border:0;border-radius:10px;padding:12px;font:16px var(--body);background:var(--bg);color:var(--ink)}.wl button{border:0;border-radius:10px;padding:12px 18px;font:700 15px var(--body);background:var(--sun);color:#14173A;cursor:pointer}.wl .x{background:transparent;color:var(--bg);border:1px solid currentColor;font-weight:500}.wl small{display:block;margin-top:10px;opacity:.8}#hist{margin-top:10px}
+.chip input{width:auto;padding:0;margin:0 8px 0 0}label.chip{display:inline-flex;align-items:center;cursor:pointer}.note{color:var(--mute)}.banner{margin-top:26px;padding:12px 16px;border-radius:12px;font-weight:600;font-size:15px}.banner.ok{background:var(--sun);color:#14173A}.banner.warn{background:#C8321F;color:#fff}.card{position:relative}.card.isdone::after{content:"DONE " attr(data-t);position:absolute;top:-11px;left:16px;background:#C8321F;color:#fff;font:700 12px var(--body);letter-spacing:.06em;padding:4px 10px;border-radius:999px}#end{position:fixed;inset:0;z-index:50;background:#0B0C1F;color:#fff;display:none;place-items:center;text-align:center;padding:24px;cursor:pointer}#end.on{display:grid}#end .m{font:800 clamp(52px,14vw,120px)/1 var(--display);color:#FFD23F;margin:14px 0}#end .k{font:500 clamp(16px,4vw,24px) var(--body);opacity:.85}#end .p{margin-top:36px;font:600 14px var(--body);letter-spacing:.14em;text-transform:uppercase;opacity:.7}.wl{margin-top:36px;background:var(--ink);color:var(--bg);border-radius:18px;padding:22px}.wl h2{font:800 24px/1.1 var(--display);margin:0 0 6px}.wl p{margin:0 0 14px;opacity:.8}.wl .r{display:flex;gap:8px;flex-wrap:wrap}.wl input{flex:1;min-width:200px;border:0;border-radius:10px;padding:12px;font:16px var(--body);background:var(--bg);color:var(--ink)}.wl button{border:0;border-radius:10px;padding:12px 18px;font:700 15px var(--body);background:var(--sun);color:#14173A;cursor:pointer}.wl .x{background:transparent;color:var(--bg);border:1px solid currentColor;font-weight:500}.wl small{display:block;margin-top:10px;opacity:.8}#hist{margin-top:10px}
 footer{margin-top:40px;color:var(--mute);font-size:13px}
 @media(max-width:720px){.grid{grid-template-columns:1fr}.compose{box-shadow:4px 4px 0 var(--ink)}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-delay:0s!important}}
@@ -93,6 +93,7 @@ footer{margin-top:40px;color:var(--mute);font-size:13px}
 <div class="chips" id="hist" aria-label="Recent kits"></div>
 <button class="chip" id="endb" hidden>Show ending card</button>
 
+<div class="banner" id="banner" hidden></div>
 <section class="grid">
   <article class="card"><h2>X thread <button data-copy="thread">Copy</button></h2><div class="out empty" id="thread">Your thread appears here.</div></article>
   <article class="card"><h2>Reply hooks <button data-copy="replies">Copy</button></h2><div class="out empty" id="replies">Ten hooks appear here.</div></article>
@@ -108,7 +109,7 @@ const IDEAS=["A coding course for designers","My newsletter about indie hardware
 IDEAS.forEach(t=>{const b=document.createElement("button");b.className="chip";b.textContent=t;b.onclick=()=>{$("idea").value=t};$("chips").appendChild(b)});
 const LOCAL=location.protocol==="file:";
 $("mode").onchange=()=>{const l=$("mode").value==="live";$("key").hidden=!(l&&LOCAL);$("model").hidden=!(l&&LOCAL)};
-let UM="";
+let UM="",FB="";
 document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText($(b.dataset.copy).textContent);b.textContent="Copied";setTimeout(()=>b.textContent="Copy",1200)}catch(e){b.textContent="Select and copy"}});
 
 const SYS=`You write launch kits. Reply in exactly three sections, each starting with its marker on its own line:
@@ -153,7 +154,7 @@ if(s.REPLIES)set("replies",s.REPLIES.trim(),!s.PAGE);
 if(s.PAGE&&(done||s.PAGE.length%5===0))$("page").srcdoc=s.PAGE.replace(/^```html\n?|```$/g,"");
 }
 async function run(){
-if(busy)return;busy=true;$("go").disabled=true;$("err").className="err";$("err").textContent="";
+if(busy)return;busy=true;$("go").disabled=true;UM="";FB="";$("banner").hidden=true;$("err").className="err";$("err").textContent="";
 ["thread","replies"].forEach(i=>{$(i).textContent="";$(i).classList.remove("empty")});$("page").srcdoc="";
 const idea=$("idea").value.trim()||IDEAS[0];$("idea").value=idea;
 const t0=performance.now();let buf="";let tf=0,l0=0,rc=0;const L=()=>buf.length+rc;const tick=()=>{const n=performance.now(),s=(n-t0)/1000;if(!tf&&L()){tf=n;l0=L()}if(tf)$("err").textContent=buf.length?"":"Kimi is thinking before it writes...";$("tmv").textContent=s.toFixed(1);$("tpsv").textContent=tf?Math.round((L()-l0)/4/Math.max((n-tf)/1000,.05)):0};
@@ -163,16 +164,16 @@ try{
   const full=demoText(idea);
   for(let i=0;i<full.length;i+=90){buf=full.slice(0,i+90);render(buf,false);tick();await new Promise(r=>setTimeout(r,16))}
  }else{
-  const key=$("key").value.trim();$("err").className="err note";$("err").textContent="Waiting in Kimi's shared queue. This can take a minute when the hackathon is busy.";
+  const key=$("key").value.trim();$("err").className="err note";$("err").textContent="Kimi is busy right now. Waiting for your turn...";
   const res=await fetch(key?"https://api.cerebras.ai/v1/chat/completions":"/api/generate",{method:"POST",headers:key?{"Content-Type":"application/json","Authorization":"Bearer "+key}:{"Content-Type":"application/json"},
    body:JSON.stringify({model:$("model").value.trim(),stream:true,...(key?{}:{strict:$("strict").checked}),messages:[{role:"system",content:SYS},{role:"user",content:idea+"\nTone: "+$("tone").value+"."}]})});
   if(!res.ok)throw new Error("Cerebras returned "+res.status+". Check the key and model name.");
   const rd=res.body.getReader(),dec=new TextDecoder();let carry="";
   for(;;){const{done,value}=await rd.read();if(done)break;carry+=dec.decode(value,{stream:true});const lines=carry.split("\n");carry=lines.pop();
-   for(const l of lines){if(!l.startsWith("data:")||l.includes("[DONE]"))continue;try{const d=JSON.parse(l.slice(5));if(d.error){$("err").className="err";$("err").textContent=d.error}if(d.notice)$("qres").textContent=d.notice;if(d.model)UM=d.model;const dl=d.choices?.[0]?.delta||{};buf+=dl.content||"";rc+=(dl.reasoning||dl.reasoning_content||"").length}catch(e){}}
+   for(const l of lines){if(!l.startsWith("data:")||l.includes("[DONE]"))continue;try{const d=JSON.parse(l.slice(5));if(d.error){$("err").className="err";$("err").textContent=d.error}if(d.notice)FB=d.notice;if(d.model)UM=d.model;const dl=d.choices?.[0]?.delta||{};buf+=dl.content||"";rc+=(dl.reasoning||dl.reasoning_content||"").length}catch(e){}}
    render(buf,false);tick()}
  }
- render(buf,true);tick();saveHist(idea,buf);finish(t0,buf,tf,l0,rc);
+ render(buf,true);tick();if(buf.trim())saveHist(idea,buf);finish(t0,buf,tf,l0,rc);
 }catch(e){$("err").className="err";$("err").textContent=e.message.includes("Failed to fetch")?"Request blocked. Run this file from your PC (open it locally) to use Live mode.":e.message}
 busy=false;$("go").disabled=false;
 }
@@ -181,9 +182,12 @@ function saveHist(idea,buf){const h=store.get("strike:h",[]).filter(x=>x.idea!==
 function drawHist(){const el=$("hist");el.innerHTML="";store.get("strike:h",[]).forEach(x=>{const b=document.createElement("button");b.className="chip";b.textContent="Recent: "+x.idea.slice(0,26);b.onclick=()=>{$("idea").value=x.idea;render(x.buf,true)};el.appendChild(b)})}
 $("dl").onclick=()=>{const h=$("page").srcdoc;if(!h)return;const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([h],{type:"text/html"}));a.download="landing.html";a.click()};
 $("cp").onclick=async()=>{try{await navigator.clipboard.writeText($("page").srcdoc);$("cp").textContent="Copied";setTimeout(()=>$("cp").textContent="Copy HTML",1200)}catch(e){}};
-function finish(t0,buf,tf,l0,rc){const n=performance.now(),s=(n-t0)/1000,q=tf?(tf-t0)/1000:0,tk=Math.round((buf.length+(rc||0)-(l0||0))/4/Math.max((n-(tf||t0))/1000,.05));$("tmv").textContent=s.toFixed(1);document.querySelectorAll(".card").forEach(c=>{c.dataset.t=q>1?((n-tf)/1000).toFixed(1)+"s after "+q.toFixed(1)+"s queue":s.toFixed(1)+"s";c.classList.add("isdone")});$("e1").textContent=$("mode").value==="demo"?"Sample mode (simulated speed)":(/kimi/i.test(UM||"kimi")?"Kimi K3.1 Pro on Cerebras":UM+" on Cerebras");$("e2").textContent=(q>1?(n-tf)/1000:s).toFixed(1)+" seconds";$("e3").textContent="about "+tk+" tokens per second"+(q>1?" after "+q.toFixed(1)+"s in queue":"");$("endb").hidden=false}
+function finish(t0,buf,tf,l0,rc){const bn=$("banner"),demo=$("mode").value==="demo";bn.hidden=false;
+if(!buf.trim()){const em=$("err").className==="err"?$("err").textContent:"";bn.className="banner warn";bn.textContent=em||(rc>0?"Kimi used its whole budget thinking and wrote nothing. Try again.":"Kimi did not start in time. Try again in a minute.");return}
+bn.className=FB?"banner warn":"banner ok";bn.textContent=demo?"Sample output (simulated, not from a model)":FB||("Written by "+(/kimi/i.test(UM||"kimi")?"Kimi K3.1 Pro":UM)+" on Cerebras");
+const n=performance.now(),s=(n-t0)/1000,q=tf?(tf-t0)/1000:0,tk=Math.round((buf.length+(rc||0)-(l0||0))/4/Math.max((n-(tf||t0))/1000,.05));$("tmv").textContent=s.toFixed(1);document.querySelectorAll(".card").forEach(c=>{c.dataset.t=q>1?((n-tf)/1000).toFixed(1)+"s after "+q.toFixed(1)+"s queue":s.toFixed(1)+"s";c.classList.add("isdone")});$("e1").textContent=$("mode").value==="demo"?"Sample mode (simulated speed)":(/kimi/i.test(UM||"kimi")?"Kimi K3.1 Pro on Cerebras":UM+" on Cerebras");$("e2").textContent=(q>1?(n-tf)/1000:s).toFixed(1)+" seconds";$("e3").textContent="about "+tk+" tokens per second"+(q>1?" after "+q.toFixed(1)+"s in queue":"");$("endb").hidden=false}
 $("endb").onclick=()=>$("end").classList.add("on");$("end").onclick=()=>$("end").classList.remove("on");
-$("qchk").onclick=async()=>{const r=$("qres");r.textContent="Checking...";try{const x=await(await fetch("/api/ping")).json(),q=x.queue;r.textContent=x.over?"Queue over "+x.over+"s: busy, wait and retry":q==null?"No data":"Queue "+q.toFixed(1)+"s: "+(q<5?"good time to record":"busy, wait and retry")}catch(e){r.textContent="Check failed: "+(e&&e.message?e.message:"unknown")}};
+$("qchk").onclick=async()=>{const r=$("qres");r.textContent="Checking...";try{const x=await(await fetch("/api/ping")).json(),q=x.queue;r.textContent=x.over?"Kimi is busy (wait over "+x.over+"s)":q==null?"No data":"Kimi wait: "+q.toFixed(1)+"s"+(q<5?" - good time to go":" - busy")}catch(e){r.textContent="Check failed: "+(e&&e.message?e.message:"unknown")}};
 if(!LOCAL){$("mode").value="live"}$("mode").onchange();
 drawHist();
 $("go").onclick=run;
